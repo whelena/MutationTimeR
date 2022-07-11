@@ -1063,7 +1063,7 @@ plotSample <- function(vcf, cn, sv=NULL, title="", regions=NULL, ylim.cn=c(0,5),
 	l <- 20
 	x0 <- seq(0,1,l=l) 
 	y2 <- x0*(1-x0)*4*h
-	cls <- factor(as.character(info(sv)$SVCLASS), levels=c("DEL", "DUP", "h2hINV","t2tINV","TRA"))
+	cls <- factor(as.character(info(sv)$SVCLASS), levels=c("DEL", "DUP", "h2hINV","t2tINV", "INV", "TRA"))
 	w <- which(sv %over% regions | vs %over% regions)
 	for(i in w)
 		try({
