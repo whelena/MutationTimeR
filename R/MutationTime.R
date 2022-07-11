@@ -928,16 +928,17 @@ simulateMutations <- function(cn, purity=max(cn$clonal_frequency, na.rm=TRUE),  
 
 .plotTiming <- function(bb, time=mcols(bb), col=paste0(RColorBrewer::brewer.pal(5,"Set2")[c(3:5)],"88"), legend=TRUE, col.grid='grey', lty.grid=1, xlim=c(0,chrOffset["MT"]), plot=2){
 	plot(NA,NA, xlab='', ylab="Time [mutations]", ylim=c(0,1), xlim=xlim, xaxt="n")
+	names(col) <- unique(time[!is.na(time$type), "type"]) # edited by HW
 	if(any(!is.na(bb$time)))
 		tryCatch({
 					bb <- bb[!is.na(bb$time)]
+					time <- time[!is.na(time$time), ] # edited by HW
 					s <- start(bb)
 					e <- end(bb)
 					x <- chrOffset[as.character(seqnames(bb))]
 					y <- time[,"time"]
 					rect(s+x,time[,"time.lo"],e+x,time[,"time.up"], border=NA, col=col[time[,"type"]], angle = ifelse(bb$time.star=="*" | is.na(bb$time.star),45,135), density=ifelse(bb$time.star == "***", -1, 72))
 					segments(s+x,y,e+x,y)
-					
 					if("time.2nd" %in% colnames(time)){ 
 						w <- !is.na(time[,"time.2nd"])
 						if(sum(w) != 0 & plot==2){
@@ -1063,7 +1064,7 @@ plotSample <- function(vcf, cn, sv=NULL, title="", regions=NULL, ylim.cn=c(0,5),
 	l <- 20
 	x0 <- seq(0,1,l=l) 
 	y2 <- x0*(1-x0)*4*h
-	cls <- factor(as.character(info(sv)$SVCLASS), levels=c("DEL", "DUP", "h2hINV","t2tINV", "INV", "TRA"))
+	cls <- factor(as.character(info(sv)$SVCLASS), levels=c("DEL", "DUP", "h2hINV","t2tINV","TRA", "INV")) # edited by HW
 	w <- which(sv %over% regions | vs %over% regions)
 	for(i in w)
 		try({
@@ -1075,4 +1076,3 @@ plotSample <- function(vcf, cn, sv=NULL, title="", regions=NULL, ylim.cn=c(0,5),
 					#segments(x0=c(x[1], x[l]), x1=c(x[1],x[l]), y0=y0, y1=y1, col=col[cls[i]])
 				})
 }
-
