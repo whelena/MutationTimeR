@@ -891,12 +891,13 @@ simulateMutations <- function(cn, purity=max(cn$clonal_frequency, na.rm=TRUE),  
 	abline(v = chrOffset[1:25], lty=lty.grid, col=col.grid)
 	if(xaxt) mtext(side=1, line=1, at=chrOffset[1:24] + diff(chrOffset[1:25])/2, text=names(chrOffset[1:24]))
 	if(legend){
-		if(type=="lines") legend("topleft", c("Total CN","Major CN","Minor CN"), col=c("black", col[1:2]), lty=1, lwd=2, bg='white')
-		else legend("topleft", c("Major CN","Minor CN"), fill=col[1:2], bg='white')
+		if(type=="lines") legend("topright", c("Total CN","Major CN","Minor CN"), col=c("black", col[1:2]), lty=1, lwd=2, bg='white')
+		else legend("topright", c("Major CN","Minor CN"), fill=col[1:2], bg='white')
 	}
 }
 
 .plotVcf <- function(vcf, bb, col = RColorBrewer::brewer.pal(9, "Set1")[c(3,4,2,1,9)], ID = meta(header(vcf))[[1]]["ID",1], legend=TRUE, lty.grid=1, col.grid="grey", xaxt=TRUE, pch=16, pch.out=pch, cex=0.66, xlim=c(0,chrOffset["MT"])) {
+	print('plott SNV')
 	cls <- factor(paste(as.character(info(vcf)$CLS)), levels = c("clonal [early]","clonal [late]","clonal [NA]","subclonal" , "NA"))
 	plot(NA,NA, xlab='', ylab="VAF", ylim=c(0,1), xlim=xlim, xaxt="n", cex=cex)
 	abline(v = chrOffset[1:25], lty=lty.grid, col=col.grid)
@@ -913,7 +914,7 @@ simulateMutations <- function(cn, purity=max(cn$clonal_frequency, na.rm=TRUE),  
 		#text(x=(s+e)/2 +x, y=y, paste(signif(bb$timing_param[[i]][,"m"],2),signif(bb$timing_param[[i]][,"cfi"]/purityPloidy[meta(header(vv))["ID",1],"purity"],2), sep=":"), pos=3, cex=0.5)
 	}
 	points(start(vcf) + chrOffset[as.character(seqnames(vcf))], getAltCount(vcf)/getTumorDepth(vcf),col=col[cls],  pch=ifelse(info(vcf)$pMutCNTail < 0.025 | info(vcf)$pMutCNTail > 0.975, pch.out , pch),  cex=cex)				
-	if(legend) legend("topleft", pch=19, col=col, legend=paste(as.numeric(table(cls)), levels(cls)), bg='white')
+	if(legend) legend("topright", pch=19, col=col, legend=paste(as.numeric(table(cls)), levels(cls)), bg='white')
 }
 
 .timeToBeta <- function(time){
@@ -927,8 +928,10 @@ simulateMutations <- function(cn, purity=max(cn$clonal_frequency, na.rm=TRUE),  
 }
 
 .plotTiming <- function(bb, time=mcols(bb), col=paste0(RColorBrewer::brewer.pal(5,"Set2")[c(3:5)],"88"), legend=TRUE, col.grid='grey', lty.grid=1, xlim=c(0,chrOffset["MT"]), plot=2){
+	print('plot timing')
 	plot(NA,NA, xlab='', ylab="Time [mutations]", ylim=c(0,1), xlim=xlim, xaxt="n")
-	names(col) <- unique(time[!is.na(time$type), "type"]) # edited by HW
+	time$type <- factor(time$type, levels = c("CN-LOH", "Mono-allelic Gain", "Bi-allelic Gain (WGD)"))
+	names(col) <- levels(time$type) # edited by HW
 	if(any(!is.na(bb$time)))
 		tryCatch({
 					bb <- bb[!is.na(bb$time)]
@@ -939,6 +942,7 @@ simulateMutations <- function(cn, purity=max(cn$clonal_frequency, na.rm=TRUE),  
 					y <- time[,"time"]
 					rect(s+x,time[,"time.lo"],e+x,time[,"time.up"], border=NA, col=col[time[,"type"]], angle = ifelse(bb$time.star=="*" | is.na(bb$time.star),45,135), density=ifelse(bb$time.star == "***", -1, 72))
 					segments(s+x,y,e+x,y)
+
 					if("time.2nd" %in% colnames(time)){ 
 						w <- !is.na(time[,"time.2nd"])
 						if(sum(w) != 0 & plot==2){
@@ -958,7 +962,7 @@ simulateMutations <- function(cn, purity=max(cn$clonal_frequency, na.rm=TRUE),  
 	c <- cumsum(l)
 	axis(side=1, at=c(0,c), labels=rep('', length(l)+1))
 	mtext(side=1, line=1, at=chrOffset[1:24] + diff(chrOffset[1:25])/2, text=names(chrOffset[1:24]))
-	if(legend) legend("topleft", levels(time[,"type"]), fill=col, bg="white")
+	if(legend) legend("bottomleft", legend = levels(time[,"type"]), fill=col, bg="white")
 }
 
 .betaFromCi <- function(x, weight.mode=5){
@@ -999,24 +1003,24 @@ simulateMutations <- function(cn, purity=max(cn$clonal_frequency, na.rm=TRUE),  
 #' 
 #' @author mg14
 #' @export
-plotSample <- function(vcf, cn, sv=NULL, title="", regions=NULL, ylim.cn=c(0,5), layout.height=c(4,1.2,3.5), y.sv=ylim.cn[2]-1) {
+plotSample <- function(vcf, cn, sv=NULL, title="", regions=NULL, ylim.cn=c(0,5), layout.height=c(4,1.2,3.5), y.sv=ylim.cn[2]-1, legend = TRUE) {
 	if(is.null(regions)) regions <- refLengths[1:24]
 	p <- par()
 	layout(matrix(1:3, ncol=1), height=layout.height)
 	par(mar=c(0.5,3,0.5,0.5), mgp=c(2,0.25,0), bty="L", las=2, tcl=-0.25, cex=1)
 	xlim=c(min(chrOffset[as.character(seqnames(regions))]+start(regions)),max(chrOffset[as.character(seqnames(regions))]+end(regions)))
 	bbb <- cn[cn %over% regions]
-	.plotVcf(vcf[vcf %over% regions], bbb, legend=FALSE, col.grid='white',  xaxt=FALSE, cex=0.33, xlim=xlim)
+	.plotVcf(vcf[vcf %over% regions], bbb, legend=legend, col.grid='white',  xaxt=FALSE, cex=0.33, xlim=xlim)
 	mtext(line=-1, side=3, title, las=1)
-	.plotBB(bbb, ylim=ylim.cn, legend=FALSE, type='bar', col.grid='white', col=c("lightgrey", "darkgrey"), xaxt=FALSE, xlim=xlim)
+	.plotBB(bbb, ylim=ylim.cn, legend=legend, type='bar', col.grid='white', col=c("lightgrey", "darkgrey"), xaxt=FALSE, xlim=xlim)
 	tryCatch({
 				par(xpd=NA)
 				if(!is.null(sv))
-					.plotSv(sv, y1=y.sv, regions=regions, add=TRUE)
+					.plotSv(sv, y1=y.sv, regions=regions, add=TRUE, legend=legend)
 				par(xpd=FALSE)
 			}, error=function(x) warning(x))
 	par(mar=c(3,3,0.5,0.5))
-	.plotTiming(bbb, xlim=xlim, legend=FALSE, col.grid=NA)
+	.plotTiming(bbb, xlim=xlim, legend=legend, col.grid=NA)
 	if(length(regions) == 1)
 		axis(side=1, at=pretty(c(start(regions), end(regions)))+chrOffset[as.character(seqnames(regions))], labels=sitools::f2si(pretty(c(start(regions), end(regions)))))
 	if(any(!is.na(cn$time))){
@@ -1046,7 +1050,7 @@ plotSample <- function(vcf, cn, sv=NULL, title="", regions=NULL, ylim.cn=c(0,5),
 	par(p[setdiff(names(p), c("cin","cra","csi","cxy","din","page"))])
 }
 
-.plotSv <- function(sv, y0=0,y1=y0, h=1, col=paste0(RColorBrewer::brewer.pal(5,"Set1"),"44"), regions=refLengths[1:24], add=FALSE){
+.plotSv_original <- function(sv, y0=0,y1=y0, h=1, col=paste0(RColorBrewer::brewer.pal(5,"Set1"),"44"), regions=refLengths[1:24], add=FALSE){
 	if(add==FALSE){
 		s <- c(1:22, "X","Y")
 		l <- as.numeric(width(refLengths[as.character(seqnames(refLengths)) %in% s]))
@@ -1075,4 +1079,37 @@ plotSample <- function(vcf, cn, sv=NULL, title="", regions=NULL, ylim.cn=c(0,5),
 					lines(x, y, col=col[cls[i]])
 					#segments(x0=c(x[1], x[l]), x1=c(x[1],x[l]), y0=y0, y1=y1, col=col[cls[i]])
 				})
+}
+
+.plotSv <- function(sv.df, y0=0,y1=y0, h=1, col=paste0(RColorBrewer::brewer.pal(5,"Set1"),"44"), regions=refLengths[1:24], add=FALSE, legend=TRUE){
+	print('plot SV')
+	if(add==FALSE){
+		s <- c(1:22, "X","Y")
+		l <- as.numeric(width(refLengths[as.character(seqnames(refLengths)) %in% s]))
+		names(l) <- s
+		plot(NA,NA, ylab="Copy number",xlab="",xlim=xlim, ylim=ylim, xaxt="n")
+		c <- cumsum(l)
+		axis(side=1, at=c(0,c), labels=rep('', length(l)+1))
+		if(length(regions) == 1)
+			axis(side=1, at=pretty(c(start(regions), end(regions)))+chrOffset[as.character(seqnames(regions))], labels=sitools::f2si(pretty(c(start(regions), end(regions)))))
+		if(xaxt) mtext(side=1, at= cumsum(l) - l/2, text=names(l), line=1)
+	}
+	sv <- GRanges(sv.df$CHROM_A, IRanges(sv.df$START_A, width=1)) # edited by HW
+	vs <- GRanges(sv.df$CHROM_B, IRanges(sv.df$START_B, width=1)) # edited by HW
+	l <- 20
+	x0 <- seq(0,1,l=l) 
+	y2 <- x0*(1-x0)*4*h
+	sv$SVCLASS <- gsub('[0-9]', '', sv.df$ID) # edited by HW
+	cls <- factor(sv$SVCLASS, levels=unique(sv$SVCLASS)) # edited by HW
+	w <- which(sv %over% regions | vs %over% regions)
+	for(i in w)
+		try({
+					x <- seq(start(sv)[i] + chrOffset[as.character(seqnames(sv)[i])], start(vs)[i] + chrOffset[as.character(seqnames(vs)[i])], length.out=l)
+					x <- c(x[1], x, x[length(x)])
+					y <- y1 + y2 * if(grepl("INV", cls[i])) -1 else 1
+					y <- c(y0, y , y0)
+					lines(x, y, col=col[cls[i]])
+					#segments(x0=c(x[1], x[l]), x1=c(x[1],x[l]), y0=y0, y1=y1, col=col[cls[i]])
+				})
+	if(legend) legend("topleft", pch=19, col=col, legend=paste(as.character(table(cls)), levels(cls)), bg='white')
 }
