@@ -1099,7 +1099,7 @@ plotSample <- function(vcf, cn, sv=NULL, title="", regions=NULL, ylim.cn=c(0,5),
 	l <- 20
 	x0 <- seq(0,1,l=l) 
 	y2 <- x0*(1-x0)*4*h
-	sv$SVCLASS <- gsub('[0-9]', '', sv.df$ID) # edited by HW
+	sv$SVCLASS <- gsub('[ 0-9]', '', sv.df$ID) # edited by HW
 	cls <- factor(sv$SVCLASS, levels=unique(sv$SVCLASS)) # edited by HW
 	w <- which(sv %over% regions | vs %over% regions)
 	for(i in w)
